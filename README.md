@@ -4,22 +4,22 @@ A comprehensive collection of design patterns implemented in C# with clear examp
 
 ## 📚 Table of Contents
 
-- [SOLID Design Principles](#solid-design-principles)
-  - [Single Responsibility Principle](#1-single-responsibility-principle)
-  - [Open-Closed Principle](#2-open-closed-principle)
-  - [Liskov Substitution Principle](#3-liskov-substitution-principle)
-  - [Interface Segregation Principle](#4-interface-segregation-principle)
-  - [Dependency Inversion Principle](#5-dependency-inversion-principle)
-- [Creational Patterns - Builder](#creational-patterns---builder)
+- [SOLID Design Principles](#️-solid-design-principles)
+  - [Single Responsibility Principle](#1-single-responsibility-principle-srp)
+  - [Open-Closed Principle](#2-open-closed-principle-ocp)
+  - [Liskov Substitution Principle](#3-liskov-substitution-principle-lsp)
+  - [Interface Segregation Principle](#4-interface-segregation-principle-isp)
+  - [Dependency Inversion Principle](#5-dependency-inversion-principle-dip)
+- [Creational Patterns - Builder](#️-creational-patterns---builder)
   - [Basic Builder](#1-basic-builder)
   - [Builder Inheritance](#2-builder-inheritance)
   - [Stepwise Builder](#3-stepwise-builder)
   - [Functional Builder](#4-functional-builder)
   - [Functional Generic Builder](#5-functional-generic-builder)
   - [Faceted Builder](#6-faceted-builder)
-- [Getting Started](#getting-started)
-- [Contributing](#contributing)
-- [License](#license)
+- [Getting Started](#-getting-started)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ## 🏗️ SOLID Design Principles
 
