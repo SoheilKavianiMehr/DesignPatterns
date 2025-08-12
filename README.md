@@ -17,6 +17,11 @@ A comprehensive collection of design patterns implemented in C# with clear examp
   - [Functional Builder](#4-functional-builder)
   - [Functional Generic Builder](#5-functional-generic-builder)
   - [Faceted Builder](#6-faceted-builder)
+- [Creational Patterns - Factories](#️-creational-patterns---factories)
+  - [Factory Method](#1-factory-method)
+  - [Asynchronous Factory](#2-asynchronous-factory)
+  - [Bulk Replacement Factory](#3-bulk-replacement-factory)
+  - [Abstract Factory](#4-abstract-factory)
 - [Getting Started](#-getting-started)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -411,6 +416,222 @@ Person person = new PersonBuilder()
 - Maintains single object instance across builders
 - Clean, organized API for complex objects
 
+## 🏭 Creational Patterns - Factories
+
+The Factory pattern provides an interface for creating objects without specifying their exact classes. It encapsulates object creation logic and promotes loose coupling between client code and concrete implementations.
+
+### 1. Factory Method
+
+**Purpose**: Provides static methods and properties for creating objects, avoiding constructor complexity.
+
+**Implementation**: [`3-Creational.Factories/1-Factory`](./3-Creational.Factories/1-Factory)
+
+**Example**:
+```csharp
+public class Point
+{
+    private double x, y;
+    
+    protected Point(double x, double y)
+    {
+        this.x = x;
+        this.y = y;
+    }
+    
+    // Factory methods
+    public static Point NewCartesianPoint(double x, double y)
+    {
+        return new Point(x, y);
+    }
+    
+    public static Point NewPolarPoint(double rho, double theta)
+    {
+        return new Point(rho * Math.Cos(theta), rho * Math.Sin(theta));
+    }
+    
+    // Factory property
+    public static Point Origin => new Point(0, 0);
+    
+    // Nested factory class
+    public static class Factory
+    {
+        public static Point NewCartesianPoint(double x, double y)
+        {
+            return new Point(x, y);
+        }
+    }
+}
+
+// Usage
+var point1 = Point.NewCartesianPoint(2, 3);
+var point2 = Point.NewPolarPoint(1, Math.PI/4);
+var origin = Point.Origin;
+var point3 = Point.Factory.NewCartesianPoint(1, 2);
+```
+
+**Key Benefits**:
+- Clear, intention-revealing creation methods
+- Avoids constructor parameter confusion
+- Enables different creation strategies
+- Supports object caching and reuse
+
+### 2. Asynchronous Factory
+
+**Purpose**: Handles object creation that requires asynchronous initialization.
+
+**Implementation**: [`3-Creational.Factories/2-AsynchronousFactory`](./3-Creational.Factories/2-AsynchronousFactory)
+
+**Example**:
+```csharp
+public class FooWithFactory
+{
+    private FooWithFactory()
+    {
+        // Private constructor
+    }
+    
+    private async Task<FooWithFactory> InitAsync()
+    {
+        await Task.Delay(1000); // Simulate async initialization
+        return this;
+    }
+    
+    public static Task<FooWithFactory> CreateAsync()
+    {
+        var result = new FooWithFactory();
+        return result.InitAsync();
+    }
+}
+
+// Usage
+FooWithFactory foo = await FooWithFactory.CreateAsync();
+```
+
+**Key Benefits**:
+- Handles async initialization properly
+- Prevents partially initialized objects
+- Maintains clean API for async object creation
+- Ensures proper resource initialization
+
+### 3. Bulk Replacement Factory
+
+**Purpose**: Allows bulk replacement of created objects, useful for themes, configurations, or global state changes.
+
+**Implementation**: [`3-Creational.Factories/3-BulkReplacementFactory`](./3-Creational.Factories/3-BulkReplacementFactory)
+
+**Example**:
+```csharp
+public class ReplaceableThemeFactory
+{
+    private readonly List<WeakReference<Ref<ITheme>>> themes = new();
+    
+    public Ref<ITheme> CreateTheme(bool dark)
+    {
+        var r = new Ref<ITheme>(createThemeImpl(dark));
+        themes.Add(new(r));
+        return r;
+    }
+    
+    public void ReplaceTheme(bool dark)
+    {
+        foreach (var wr in themes)
+        {
+            if (wr.TryGetTarget(out var reference))
+            {
+                reference.Value = createThemeImpl(dark);
+            }
+        }
+    }
+    
+    private ITheme createThemeImpl(bool dark)
+    {
+        return dark ? new DarkTheme() : new LightTheme();
+    }
+}
+
+// Usage
+var factory = new ReplaceableThemeFactory();
+var theme = factory.CreateTheme(true);
+Console.WriteLine(theme.Value.BgrColor); // "dark gray"
+factory.ReplaceTheme(false); // Bulk replace all themes
+Console.WriteLine(theme.Value.BgrColor); // "white"
+```
+
+**Key Benefits**:
+- Enables bulk updates of created objects
+- Useful for global theme/configuration changes
+- Maintains object references while changing content
+- Supports weak references to prevent memory leaks
+
+### 4. Abstract Factory
+
+**Purpose**: Provides an interface for creating families of related objects without specifying their concrete classes.
+
+**Implementation**: [`3-Creational.Factories/4-AbstractFactory`](./3-Creational.Factories/4-AbstractFactory)
+
+**Example**:
+```csharp
+public interface IHotDrinkFactory
+{
+    IHotDrink Prepare(int amount);
+}
+
+internal class TeaFactory : IHotDrinkFactory
+{
+    public IHotDrink Prepare(int amount)
+    {
+        Console.WriteLine($"Put in tea bag, boil water, pour {amount} ml, add lemon, enjoy!");
+        return new Tea();
+    }
+}
+
+internal class CoffeeFactory : IHotDrinkFactory
+{
+    public IHotDrink Prepare(int amount)
+    {
+        Console.WriteLine($"Grind some beans, boil water, pour {amount} ml, add cream and sugar, enjoy!");
+        return new Coffee();
+    }
+}
+
+public class HotDrinkMachine
+{
+    private List<Tuple<string, IHotDrinkFactory>> namedFactories = new();
+    
+    public HotDrinkMachine()
+    {
+        // Automatically discover and register factories
+        foreach (var t in typeof(HotDrinkMachine).Assembly.GetTypes())
+        {
+            if (typeof(IHotDrinkFactory).IsAssignableFrom(t) && !t.IsInterface)
+            {
+                namedFactories.Add(Tuple.Create(
+                    t.Name.Replace("Factory", string.Empty), 
+                    (IHotDrinkFactory)Activator.CreateInstance(t)));
+            }
+        }
+    }
+    
+    public IHotDrink MakeDrink()
+    {
+        // Interactive selection and creation logic
+        // ...
+    }
+}
+
+// Usage
+var machine = new HotDrinkMachine();
+IHotDrink drink = machine.MakeDrink();
+drink.Consume();
+```
+
+**Key Benefits**:
+- Creates families of related objects
+- Promotes consistency among products
+- Supports easy addition of new product families
+- Isolates concrete classes from client code
+- Uses reflection for automatic factory discovery
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -452,6 +673,11 @@ DesignPatterns/
 │   ├── 4-FunctionalBuilder/
 │   ├── 4-FunctionalGenericBuilder/
 │   └── 5-FacetedBuilder/
+├── 3-Creational.Factories/
+│   ├── 1-Factory/
+│   ├── 2-AsynchronousFactory/
+│   ├── 3-BulkReplacementFactory/
+│   └── 4-AbstractFactory/
 └── DesignPatterns.sln
 ```
 
@@ -478,7 +704,7 @@ Contributions are welcome! This repository aims to be a comprehensive resource f
 
 ## 📋 Planned Additions
 
-- **Creational Patterns**: Factory Method, Abstract Factory, Singleton, Prototype
+- **Creational Patterns**: Singleton, Prototype
 - **Structural Patterns**: Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy
 - **Behavioral Patterns**: Chain of Responsibility, Command, Iterator, Mediator, Memento, Observer, State, Strategy, Template Method, Visitor
 - **Architectural Patterns**: MVC, MVP, MVVM, Repository, Unit of Work
