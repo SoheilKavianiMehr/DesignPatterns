@@ -10,23 +10,24 @@ A comprehensive collection of design patterns implemented in C# with clear examp
   - [Liskov Substitution Principle](#3-liskov-substitution-principle-lsp)
   - [Interface Segregation Principle](#4-interface-segregation-principle-isp)
   - [Dependency Inversion Principle](#5-dependency-inversion-principle-dip)
-- [Creational Patterns - Builder](#️-creational-patterns---builder)
-  - [Basic Builder](#1-basic-builder)
-  - [Builder Inheritance](#2-builder-inheritance)
-  - [Stepwise Builder](#3-stepwise-builder)
-  - [Functional Builder](#4-functional-builder)
-  - [Functional Generic Builder](#5-functional-generic-builder)
-  - [Faceted Builder](#6-faceted-builder)
-- [Creational Patterns - Factories](#️-creational-patterns---factories)
-  - [Factory Method](#1-factory-method)
-  - [Asynchronous Factory](#2-asynchronous-factory)
-  - [Bulk Replacement Factory](#3-bulk-replacement-factory)
-  - [Abstract Factory](#4-abstract-factory)
-- [Creational Patterns - Prototypes](#️-creational-patterns---prototypes)
-  - [ICloneable is Bad](#1-icloneable-is-bad)
-  - [Copy Constructors](#2-copy-constructors)
-  - [Inheritance](#3-inheritance)
-  - [Copy Through Serialization](#4-copy-through-serialization)
+- [Creational Patterns](#-creational-patterns)
+  - [Builders](#️-builders)
+    - [Basic Builder](#1-basic-builder)
+    - [Builder Inheritance](#2-builder-inheritance)
+    - [Stepwise Builder](#3-stepwise-builder)
+    - [Functional Builder](#4-functional-builder)
+    - [Functional Generic Builder](#5-functional-generic-builder)
+    - [Faceted Builder](#6-faceted-builder)
+  - [Factories](#-factories)
+    - [Factory Method](#1-factory-method)
+    - [Asynchronous Factory](#2-asynchronous-factory)
+    - [Bulk Replacement Factory](#3-bulk-replacement-factory)
+    - [Abstract Factory](#4-abstract-factory)
+  - [Prototypes](#-prototypes)
+    - [ICloneable is Bad](#1-icloneable-is-bad)
+    - [Copy Constructors](#2-copy-constructors)
+    - [Inheritance](#3-inheritance)
+    - [Copy Through Serialization](#4-copy-through-serialization)
 - [Getting Started](#-getting-started)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -219,11 +220,15 @@ public class Research
 - Improves testability through dependency injection
 - Enhances code flexibility and maintainability
 
-## 🏭 Creational Patterns - Builder
+## 🏭 Creational Patterns
+
+Creational patterns deal with object creation mechanisms, trying to create objects in a manner suitable to the situation. These patterns provide various object creation mechanisms, which increase flexibility and reuse of existing code.
+
+### 🏗️ Builders
 
 The Builder pattern is used to construct complex objects step by step. It allows you to produce different types and representations of an object using the same construction code.
 
-### 1. Basic Builder
+#### 1. Basic Builder
 
 **Purpose**: Provides a fluent interface for constructing complex objects.
 
@@ -254,7 +259,7 @@ var builder = new HtmlBuilder("ul")
 - Step-by-step object construction
 - Separation of construction logic from representation
 
-### 2. Builder Inheritance
+#### 2. Builder Inheritance
 
 **Purpose**: Demonstrates how to create builders that inherit from each other while maintaining fluency.
 
@@ -294,7 +299,7 @@ var person = Person.New
 - Enables complex builder hierarchies
 - Preserves fluent interface across inheritance levels
 
-### 3. Stepwise Builder
+#### 3. Stepwise Builder
 
 **Purpose**: Enforces a specific order of construction steps through interfaces.
 
@@ -329,7 +334,7 @@ var car = CarBuilder.Create()
 - Prevents invalid object states
 - Clear, guided API
 
-### 4. Functional Builder
+#### 4. Functional Builder
 
 **Purpose**: Uses functional programming concepts with actions/functions to build objects.
 
@@ -364,7 +369,7 @@ var person = new PersonBuilder()
 - Functional programming approach
 - Easy to add new operations via extension methods
 
-### 5. Functional Generic Builder
+#### 5. Functional Generic Builder
 
 **Purpose**: Generic version of functional builder that can work with any type.
 
@@ -394,7 +399,7 @@ public class PersonBuilder : FunctionalBuilder<Person, PersonBuilder>
 - Type-safe generic implementation
 - Combines flexibility with strong typing
 
-### 6. Faceted Builder
+#### 6. Faceted Builder
 
 **Purpose**: Allows building different aspects of an object using specialized sub-builders.
 
@@ -421,11 +426,11 @@ Person person = new PersonBuilder()
 - Maintains single object instance across builders
 - Clean, organized API for complex objects
 
-## 🏭 Creational Patterns - Factories
+### 🏭 Factories
 
 The Factory pattern provides an interface for creating objects without specifying their exact classes. It encapsulates object creation logic and promotes loose coupling between client code and concrete implementations.
 
-### 1. Factory Method
+#### 1. Factory Method
 
 **Purpose**: Provides static methods and properties for creating objects, avoiding constructor complexity.
 
@@ -480,7 +485,7 @@ var point3 = Point.Factory.NewCartesianPoint(1, 2);
 - Enables different creation strategies
 - Supports object caching and reuse
 
-### 2. Asynchronous Factory
+#### 2. Asynchronous Factory
 
 **Purpose**: Handles object creation that requires asynchronous initialization.
 
@@ -518,7 +523,7 @@ FooWithFactory foo = await FooWithFactory.CreateAsync();
 - Maintains clean API for async object creation
 - Ensures proper resource initialization
 
-### 3. Bulk Replacement Factory
+#### 3. Bulk Replacement Factory
 
 **Purpose**: Allows bulk replacement of created objects, useful for themes, configurations, or global state changes.
 
@@ -568,7 +573,7 @@ Console.WriteLine(theme.Value.BgrColor); // "white"
 - Maintains object references while changing content
 - Supports weak references to prevent memory leaks
 
-### 4. Abstract Factory
+#### 4. Abstract Factory
 
 **Purpose**: Provides an interface for creating families of related objects without specifying their concrete classes.
 
@@ -637,11 +642,11 @@ drink.Consume();
 - Isolates concrete classes from client code
 - Uses reflection for automatic factory discovery
 
-## 🧬 Creational Patterns - Prototypes
+### 🧬 Prototypes
 
 The Prototype pattern allows you to create new objects by cloning existing instances, avoiding the overhead of creating objects from scratch. This pattern is particularly useful when object creation is expensive or when you need to create objects that are similar to existing ones.
 
-### 1. ICloneable is Bad
+#### 1. ICloneable is Bad
 
 **Purpose**: Demonstrates why the built-in `ICloneable` interface is problematic and should be avoided.
 
@@ -672,7 +677,7 @@ jane.Address.HouseNumber = 321; // Oops! John's address is also changed
 - Can lead to unexpected shared references
 - No compile-time type safety
 
-### 2. Copy Constructors
+#### 2. Copy Constructors
 
 **Purpose**: Shows how to implement proper deep copying using copy constructors.
 
@@ -715,7 +720,7 @@ var chris = new Employee(john); // Safe deep copy
 - No shared references
 - Clear constructor-based API
 
-### 3. Inheritance
+#### 3. Inheritance
 
 **Purpose**: Demonstrates how to implement deep copying with inheritance hierarchies using a custom interface.
 
@@ -769,7 +774,7 @@ var copy = john.DeepCopy();
 - Extensible for derived classes
 - Consistent deep copy behavior
 
-### 4. Copy Through Serialization
+#### 4. Copy Through Serialization
 
 **Purpose**: Shows how to implement deep copying using serialization mechanisms.
 
