@@ -22,6 +22,11 @@ A comprehensive collection of design patterns implemented in C# with clear examp
   - [Asynchronous Factory](#2-asynchronous-factory)
   - [Bulk Replacement Factory](#3-bulk-replacement-factory)
   - [Abstract Factory](#4-abstract-factory)
+- [Creational Patterns - Prototypes](#️-creational-patterns---prototypes)
+  - [ICloneable is Bad](#1-icloneable-is-bad)
+  - [Copy Constructors](#2-copy-constructors)
+  - [Inheritance](#3-inheritance)
+  - [Copy Through Serialization](#4-copy-through-serialization)
 - [Getting Started](#-getting-started)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -632,6 +637,182 @@ drink.Consume();
 - Isolates concrete classes from client code
 - Uses reflection for automatic factory discovery
 
+## 🧬 Creational Patterns - Prototypes
+
+The Prototype pattern allows you to create new objects by cloning existing instances, avoiding the overhead of creating objects from scratch. This pattern is particularly useful when object creation is expensive or when you need to create objects that are similar to existing ones.
+
+### 1. ICloneable is Bad
+
+**Purpose**: Demonstrates why the built-in `ICloneable` interface is problematic and should be avoided.
+
+**Implementation**: [`2-Creational/3-Prototypes/1-ICloneableIsBad/`](2-Creational/3-Prototypes/1-ICloneableIsBad/)
+
+**Example**:
+```csharp
+public class Person : ICloneable
+{
+    public readonly string[] Names;
+    public readonly Address Address;
+
+    public object Clone()
+    {
+        return new Person(Names, Address); // Shallow copy - problematic!
+    }
+}
+
+// Usage
+var john = new Person(new[] { "John", "Smith" }, new Address("London Road", 123));
+var jane = (Person)john.Clone();
+jane.Address.HouseNumber = 321; // Oops! John's address is also changed
+```
+
+**Key Issues**:
+- Returns `object` instead of strongly-typed result
+- Doesn't specify shallow vs deep copy behavior
+- Can lead to unexpected shared references
+- No compile-time type safety
+
+### 2. Copy Constructors
+
+**Purpose**: Shows how to implement proper deep copying using copy constructors.
+
+**Implementation**: [`2-Creational/3-Prototypes/2-CopyConstructorsInsteadOfICloneable/`](2-Creational/3-Prototypes/2-CopyConstructorsInsteadOfICloneable/)
+
+**Example**:
+```csharp
+public class Address
+{
+    public string StreetAddress, City, Country;
+
+    public Address(Address other)
+    {
+        StreetAddress = other.StreetAddress;
+        City = other.City;
+        Country = other.Country;
+    }
+}
+
+public class Employee
+{
+    public string Name;
+    public Address Address;
+
+    public Employee(Employee other)
+    {
+        Name = other.Name;
+        Address = new Address(other.Address); // Deep copy
+    }
+}
+
+// Usage
+var john = new Employee("John", new Address("123 London Road", "London", "UK"));
+var chris = new Employee(john); // Safe deep copy
+```
+
+**Key Benefits**:
+- Type-safe copying
+- Explicit deep copy behavior
+- No shared references
+- Clear constructor-based API
+
+### 3. Inheritance
+
+**Purpose**: Demonstrates how to implement deep copying with inheritance hierarchies using a custom interface.
+
+**Implementation**: [`2-Creational/3-Prototypes/3-Inheritance/`](2-Creational/3-Prototypes/3-Inheritance/)
+
+**Example**:
+```csharp
+public interface IDeepCopyable<T> where T : new()
+{
+    void CopyTo(T target);
+
+    public T DeepCopy()
+    {
+        T t = new T();
+        CopyTo(t);
+        return t;
+    }
+}
+
+public class Person : IDeepCopyable<Person>
+{
+    public string[] Names;
+    public Address Address;
+
+    public virtual void CopyTo(Person target)
+    {
+        target.Names = (string[])Names.Clone();
+        target.Address = Address.DeepCopy();
+    }
+}
+
+public class Employee : Person, IDeepCopyable<Employee>
+{
+    public int Salary;
+
+    public void CopyTo(Employee target)
+    {
+        base.CopyTo(target);
+        target.Salary = Salary;
+    }
+}
+
+// Usage
+var john = new Employee { Names = new[] { "John", "Doe" }, Salary = 321000 };
+var copy = john.DeepCopy();
+```
+
+**Key Benefits**:
+- Supports inheritance hierarchies
+- Type-safe generic interface
+- Extensible for derived classes
+- Consistent deep copy behavior
+
+### 4. Copy Through Serialization
+
+**Purpose**: Shows how to implement deep copying using serialization mechanisms.
+
+**Implementation**: [`2-Creational/3-Prototypes/4-CopyThroughSerialization/`](2-Creational/3-Prototypes/4-CopyThroughSerialization/)
+
+**Example**:
+```csharp
+public static class ExtensionMethods
+{
+    public static T DeepCopyXml<T>(this T self)
+    {
+        using (var ms = new MemoryStream())
+        {
+            XmlSerializer s = new XmlSerializer(typeof(T));
+            s.Serialize(ms, self);
+            ms.Position = 0;
+            return (T)s.Deserialize(ms);
+        }
+    }
+}
+
+public class Foo
+{
+    public uint Stuff;
+    public string Whatever;
+}
+
+// Usage
+Foo foo = new Foo { Stuff = 42, Whatever = "abc" };
+Foo foo2 = foo.DeepCopyXml(); // Complete deep copy via serialization
+```
+
+**Key Benefits**:
+- Automatic deep copying of complex object graphs
+- No manual implementation required
+- Works with any serializable type
+- Handles circular references (with proper serializer)
+
+**Trade-offs**:
+- Performance overhead from serialization
+- Requires serializable types
+- May not preserve object identity
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -666,18 +847,24 @@ DesignPatterns/
 │   ├── 3-LiskovSubstitution/
 │   ├── 4-Interface Segregation/
 │   └── 5-DependencyInversion/
-├── 2-Creational.Builder/
-│   ├── 1-Builder/
-│   ├── 2-BuilderInheritance/
-│   ├── 3-StepwiseBuilder/
-│   ├── 4-FunctionalBuilder/
-│   ├── 4-FunctionalGenericBuilder/
-│   └── 5-FacetedBuilder/
-├── 3-Creational.Factories/
-│   ├── 1-Factory/
-│   ├── 2-AsynchronousFactory/
-│   ├── 3-BulkReplacementFactory/
-│   └── 4-AbstractFactory/
+├── 2-Creational/
+│   ├── 1-Builders/
+│   │   ├── 1-Builder/
+│   │   ├── 2-BuilderInheritance/
+│   │   ├── 3-StepwiseBuilder/
+│   │   ├── 4-FunctionalBuilder/
+│   │   ├── 4-FunctionalGenericBuilder/
+│   │   └── 5-FacetedBuilder/
+│   ├── 2-Factories/
+│   │   ├── 1-Factory/
+│   │   ├── 2-AsynchronousFactory/
+│   │   ├── 3-BulkReplacementFactory/
+│   │   └── 4-AbstractFactory/
+│   └── 3-Prototypes/
+│       ├── 1-ICloneableIsBad/
+│       ├── 2-CopyConstructorsInsteadOfICloneable/
+│       ├── 3-Inheritance/
+│       └── 4-CopyThroughSerialization/
 └── DesignPatterns.sln
 ```
 
@@ -704,7 +891,7 @@ Contributions are welcome! This repository aims to be a comprehensive resource f
 
 ## 📋 Planned Additions
 
-- **Creational Patterns**: Singleton, Prototype
+- **Creational Patterns**: Singleton
 - **Structural Patterns**: Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy
 - **Behavioral Patterns**: Chain of Responsibility, Command, Iterator, Mediator, Memento, Observer, State, Strategy, Template Method, Visitor
 - **Architectural Patterns**: MVC, MVP, MVVM, Repository, Unit of Work

@@ -1,11 +1,8 @@
-﻿using System.Drawing;
-using System.Threading.Tasks;
-
-public class Foo
+﻿public class Foo
 {
     public Foo()
     {
-        
+
     }
 
     public async Task<Foo> InitAsync()
@@ -41,8 +38,8 @@ class Demo
     {
         var foo = new Foo();
         await foo.InitAsync();
-        
 
-        FooWithFactory fooWithFactory = await FooWithFactory.CreateAsync(); 
+
+        FooWithFactory fooWithFactory = await FooWithFactory.CreateAsync();
     }
 }

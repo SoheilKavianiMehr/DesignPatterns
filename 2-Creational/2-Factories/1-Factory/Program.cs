@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace DotNetDesignPatternDemos.Creational.Factories
+﻿namespace DotNetDesignPatternDemos.Creational.Factories
 {
     public class Point
     {
