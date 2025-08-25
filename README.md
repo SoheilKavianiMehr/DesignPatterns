@@ -28,6 +28,12 @@ A comprehensive collection of design patterns implemented in C# with clear examp
     - [Copy Constructors](#2-copy-constructors)
     - [Inheritance](#3-inheritance)
     - [Copy Through Serialization](#4-copy-through-serialization)
+  - [Singletons](#-singletons)
+    - [Basic Singleton](#1-basic-singleton)
+    - [Singleton in Dependency Injection](#2-singleton-in-dependency-injection)
+    - [Monostate](#3-monostate)
+    - [Per-Thread Singleton](#4-per-thread-singleton)
+    - [Ambient Context](#5-ambient-context)
 - [Getting Started](#-getting-started)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -818,6 +824,245 @@ Foo foo2 = foo.DeepCopyXml(); // Complete deep copy via serialization
 - Requires serializable types
 - May not preserve object identity
 
+### 🔒 Singletons
+
+The Singleton pattern ensures that a class has only one instance and provides global access to that instance. This section demonstrates various approaches to implementing the Singleton pattern in C#.
+
+#### 1. Basic Singleton
+
+A thread-safe implementation using `Lazy<T>` for initialization:
+
+```csharp
+public class SingletonDatabase : IDatabase
+{
+    private Dictionary<string, int> capitals;
+    private static int instanceCount;
+    public static int Count => instanceCount;
+
+    private SingletonDatabase()
+    {
+        Console.WriteLine("Initializing database");
+        // Load data from file
+        capitals = File.ReadAllLines("capitals.txt")
+            .Batch(2)
+            .ToDictionary(
+                list => list.ElementAt(0).Trim(),
+                list => int.Parse(list.ElementAt(1)));
+    }
+
+    public int GetPopulation(string name)
+    {
+        return capitals[name];
+    }
+
+    // Thread-safe lazy initialization
+    private static Lazy<SingletonDatabase> instance = new Lazy<SingletonDatabase>(() =>
+    {
+        instanceCount++;
+        return new SingletonDatabase();
+    });
+
+    public static IDatabase Instance => instance.Value;
+}
+```
+
+**Key Features**:
+- Thread-safe initialization using `Lazy<T>`
+- Private constructor prevents external instantiation
+- Static property provides global access
+- Lazy loading - instance created only when first accessed
+
+#### 2. Singleton in Dependency Injection
+
+Using dependency injection containers to manage singleton lifetime:
+
+```csharp
+public class EventBroker
+{
+    // Singleton service implementation
+}
+
+public class Foo
+{
+    public EventBroker Broker;
+
+    public Foo(EventBroker broker)
+    {
+        Broker = broker ?? throw new ArgumentNullException(nameof(broker));
+    }
+}
+
+// DI Container setup
+var builder = new ContainerBuilder();
+builder.RegisterType<EventBroker>().SingleInstance(); // Singleton registration
+builder.RegisterType<Foo>();
+
+using (var container = builder.Build())
+{
+    var foo1 = container.Resolve<Foo>();
+    var foo2 = container.Resolve<Foo>();
+    
+    // Different Foo instances, but same EventBroker instance
+    Console.WriteLine(ReferenceEquals(foo1, foo2)); // False
+    Console.WriteLine(ReferenceEquals(foo1.Broker, foo2.Broker)); // True
+}
+```
+
+**Benefits**:
+- Integrates with dependency injection
+- Testable (can inject mock implementations)
+- Container manages lifetime
+- Follows inversion of control principle
+
+#### 3. Monostate
+
+An alternative to Singleton where all instances share the same state:
+
+```csharp
+public class ChiefExecutiveOfficer
+{
+    private static string name;
+    private static int age;
+
+    public string Name
+    {
+        get => name;
+        set => name = value;
+    }
+
+    public int Age
+    {
+        get => age;
+        set => age = value;
+    }
+
+    public override string ToString()
+    {
+        return $"Name: {Name}, Age: {Age}";
+    }
+}
+
+// Usage
+var ceo1 = new ChiefExecutiveOfficer();
+ceo1.Name = "John Doe";
+ceo1.Age = 55;
+
+var ceo2 = new ChiefExecutiveOfficer();
+Console.WriteLine(ceo2); // Name: John Doe, Age: 55
+```
+
+**Characteristics**:
+- Multiple instances allowed
+- All instances share the same state
+- Transparent to client code
+- State stored in static fields
+
+#### 4. Per-Thread Singleton
+
+Separate singleton instance per thread:
+
+```csharp
+public sealed class PerThreadSingleton
+{
+    private static ThreadLocal<PerThreadSingleton> threadInstance
+        = new ThreadLocal<PerThreadSingleton>(
+            () => new PerThreadSingleton());
+
+    public int Id;
+
+    private PerThreadSingleton()
+    {
+        Id = Thread.CurrentThread.ManagedThreadId;
+    }
+
+    public static PerThreadSingleton Instance => threadInstance.Value;
+}
+
+// Usage
+var t1 = Task.Factory.StartNew(() =>
+{
+    Console.WriteLine($"t1: {PerThreadSingleton.Instance.Id}");
+});
+var t2 = Task.Factory.StartNew(() =>
+{
+    Console.WriteLine($"t2: {PerThreadSingleton.Instance.Id}");
+    Console.WriteLine($"t2 again: {PerThreadSingleton.Instance.Id}");
+});
+Task.WaitAll(t1, t2);
+```
+
+**Use Cases**:
+- Thread-specific state management
+- Avoiding thread synchronization overhead
+- Per-thread resource management
+
+#### 5. Ambient Context
+
+Provides implicit context that can be accessed globally:
+
+```csharp
+public sealed class BuildingContext : IDisposable
+{
+    public int WallHeight = 0;
+    public int WallThickness = 300;
+    
+    private static Stack<BuildingContext> stack = new Stack<BuildingContext>();
+
+    static BuildingContext()
+    {
+        stack.Push(new BuildingContext(0)); // Default context
+    }
+
+    public BuildingContext(int wallHeight)
+    {
+        WallHeight = wallHeight;
+        stack.Push(this);
+    }
+
+    public static BuildingContext Current => stack.Peek();
+
+    public void Dispose()
+    {
+        if (stack.Count > 1)
+            stack.Pop();
+    }
+}
+
+public class Wall
+{
+    public Point Start, End;
+    public int Height;
+
+    public Wall(Point start, Point end)
+    {
+        Start = start;
+        End = end;
+        Height = BuildingContext.Current.WallHeight; // Uses ambient context
+    }
+}
+
+// Usage
+var house = new Building();
+
+// Ground floor (default context)
+house.Walls.Add(new Wall(new Point(0, 0), new Point(5000, 0)));
+
+// First floor (new context)
+using (new BuildingContext(3500))
+{
+    house.Walls.Add(new Wall(new Point(0, 0), new Point(5000, 0)));
+}
+
+// Back to ground floor (previous context restored)
+house.Walls.Add(new Wall(new Point(5000, 0), new Point(5000, 4000)));
+```
+
+**Benefits**:
+- Implicit parameter passing
+- Hierarchical context management
+- Automatic cleanup with `using` statements
+- Reduces method parameter clutter
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -865,11 +1110,17 @@ DesignPatterns/
 │   │   ├── 2-AsynchronousFactory/
 │   │   ├── 3-BulkReplacementFactory/
 │   │   └── 4-AbstractFactory/
-│   └── 3-Prototypes/
-│       ├── 1-ICloneableIsBad/
-│       ├── 2-CopyConstructorsInsteadOfICloneable/
-│       ├── 3-Inheritance/
-│       └── 4-CopyThroughSerialization/
+│   ├── 3-Prototypes/
+  │   ├── 1-ICloneableIsBad/
+  │   ├── 2-CopyConstructorsInsteadOfICloneable/
+  │   ├── 3-Inheritance/
+  │   └── 4-CopyThroughSerialization/
+  └── 4-Singletons/
+      ├── 1-Singleton/
+      ├── 2-SingletonInDI/
+      ├── 3-Monostate/
+      ├── 4-PerThread/
+      └── 5-AmbientContext/
 └── DesignPatterns.sln
 ```
 
