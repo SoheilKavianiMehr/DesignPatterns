@@ -34,6 +34,12 @@ A comprehensive collection of design patterns implemented in C# with clear examp
     - [Monostate](#3-monostate)
     - [Per-Thread Singleton](#4-per-thread-singleton)
     - [Ambient Context](#5-ambient-context)
+- [Structural Patterns](#-structural-patterns)
+  - [Adapter](#-adapter)
+    - [No Caching](#1-no-caching)
+    - [With Caching](#2-with-caching)
+    - [Generic Value Adapter](#3-generic-value-adapter)
+    - [Autofac Adapter](#4-autofac-adapter)
 - [Getting Started](#-getting-started)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -1063,6 +1069,197 @@ house.Walls.Add(new Wall(new Point(5000, 0), new Point(5000, 4000)));
 - Automatic cleanup with `using` statements
 - Reduces method parameter clutter
 
+## 🔧 Structural Patterns
+
+Structural patterns deal with object composition and relationships between entities. They help ensure that if one part of a system changes, the entire structure doesn't need to change.
+
+### 🔌 Adapter
+
+The Adapter pattern allows incompatible interfaces to work together. It acts as a bridge between two incompatible interfaces by wrapping an existing class with a new interface.
+
+**Implementation**: [`3-Structural/1-Adapter`](./3-Structural/1-Adapter)
+
+#### 1. No Caching
+
+A basic adapter that converts vector graphics (lines) to raster graphics (points) without optimization.
+
+```csharp
+public class LineToPointAdapter : Collection<Point>
+{
+    private static int count = 0;
+
+    public LineToPointAdapter(Line line)
+    {
+        WriteLine($"{++count}: Generating points for line [{line.Start.X},{line.Start.Y}]-[{line.End.X},{line.End.Y}] (no caching)");
+
+        int left = Math.Min(line.Start.X, line.End.X);
+        int right = Math.Max(line.Start.X, line.End.X);
+        int top = Math.Min(line.Start.Y, line.End.Y);
+        int bottom = Math.Max(line.Start.Y, line.End.Y);
+        int dx = right - left;
+        int dy = line.End.Y - line.Start.Y;
+
+        if (dx == 0)
+        {
+            for (int y = top; y <= bottom; ++y)
+            {
+                Add(new Point(left, y));
+            }
+        }
+        else if (dy == 0)
+        {
+            for (int x = left; x <= right; ++x)
+            {
+                Add(new Point(x, top));
+            }
+        }
+    }
+}
+```
+
+**Key Features**:
+- Direct conversion from Line to Point collection
+- No optimization or caching
+- Simple implementation for basic use cases
+
+#### 2. With Caching
+
+An optimized adapter that caches generated points to avoid redundant calculations.
+
+```csharp
+public class LineToPointAdapter : IEnumerable<Point>
+{
+    private static int count = 0;
+    static Dictionary<int, List<Point>> cache = new Dictionary<int, List<Point>>();
+    private int hash;
+
+    public LineToPointAdapter(Line line)
+    {
+        hash = line.GetHashCode();
+        if (cache.ContainsKey(hash)) return; // we already have it
+
+        WriteLine($"{++count}: Generating points for line [{line.Start.X},{line.Start.Y}]-[{line.End.X},{line.End.Y}] (with caching)");
+
+        List<Point> points = new List<Point>();
+        // ... point generation logic ...
+        cache.Add(hash, points);
+    }
+
+    public IEnumerator<Point> GetEnumerator()
+    {
+        return cache[hash].GetEnumerator();
+    }
+}
+```
+
+**Key Features**:
+- Caching mechanism to improve performance
+- Hash-based lookup for previously computed results
+- Significant performance improvement for repeated operations
+
+#### 3. Generic Value Adapter
+
+A sophisticated adapter using generics to create flexible vector types with compile-time dimension checking.
+
+```csharp
+public interface IInteger
+{
+    int Value { get; }
+}
+
+public static class Dimensions
+{
+    public class Two : IInteger
+    {
+        public int Value => 2;
+    }
+
+    public class Three : IInteger
+    {
+        public int Value => 3;
+    }
+}
+
+public class Vector<TSelf, T, D>
+  where D : IInteger, new()
+  where TSelf : Vector<TSelf, T, D>, new()
+{
+    protected T[] data;
+
+    public Vector()
+    {
+        data = new T[new D().Value];
+    }
+
+    public T this[int index]
+    {
+        get => data[index];
+        set => data[index] = value;
+    }
+}
+
+public class Vector2i : VectorOfInt<Dimensions.Two>
+{
+    public Vector2i(params int[] values) : base(values) { }
+}
+```
+
+**Key Features**:
+- Generic type system for different vector dimensions
+- Compile-time dimension validation
+- Type-safe vector operations
+- Flexible adapter for mathematical computations
+
+#### 4. Autofac Adapter
+
+Demonstrates adapter pattern integration with dependency injection containers.
+
+```csharp
+public interface ICommand
+{
+    void Execute();
+}
+
+public class Button
+{
+    private ICommand command;
+    private string name;
+
+    public Button(ICommand command, string name)
+    {
+        this.command = command ?? throw new ArgumentNullException(nameof(command));
+        this.name = name;
+    }
+
+    public void Click() => command.Execute();
+}
+
+// Autofac registration
+var b = new ContainerBuilder();
+b.RegisterType<OpenCommand>().As<ICommand>().WithMetadata("Name", "Open");
+b.RegisterType<SaveCommand>().As<ICommand>().WithMetadata("Name", "Save");
+b.RegisterAdapter<ICommand, Button>(cmd => new Button(cmd, ""));
+b.RegisterAdapter<Meta<ICommand>, Button>(cmd => 
+  new Button(cmd.Value, (string)cmd.Metadata["Name"]));
+```
+
+**Key Features**:
+- Integration with IoC containers
+- Metadata-driven adapter creation
+- Automatic dependency resolution
+- Scalable adapter registration
+
+**Benefits**:
+- **Interface Compatibility**: Makes incompatible interfaces work together
+- **Code Reusability**: Allows existing code to work with new interfaces
+- **Separation of Concerns**: Keeps adaptation logic separate from business logic
+- **Performance Optimization**: Caching variants improve repeated operations
+
+**Trade-offs**:
+- **Additional Complexity**: Introduces an extra layer of abstraction
+- **Memory Overhead**: Caching variants consume additional memory
+- **Maintenance**: Multiple adapter implementations require careful management
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -1121,6 +1318,12 @@ DesignPatterns/
       ├── 3-Monostate/
       ├── 4-PerThread/
       └── 5-AmbientContext/
+├── 3-Structural/
+│   └── 1-Adapter/
+│       ├── 1-NoCaching/
+│       ├── 2-WithCaching/
+│       ├── 3-GenericValue/
+│       └── 4-Autofac/
 └── DesignPatterns.sln
 ```
 
